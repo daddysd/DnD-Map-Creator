@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>4K Canvas Düzenleyici</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<script type="text/javascript" src="https://me.kis.v2.scr.kaspersky-labs.com/FD126C42-EBFA-4E12-B309-BB3FDD723AC1/main.js?attr=UUGx343hS4dHn_gLIdrRQjoJr3faufZgarrpzGsbumr7MXPKNmVUqH33Q23A-tGRsiH647t1v4wvMzD2V4TKoW6pmEo_XphsRq68fgHg-_xds3K62y4gfhUzXQxTx37UxtiafIeGxUHxnBoKtak1gN8dSOKY-E-mia7LNnuaVJQrKU9uApuxYVQ_gLkzlQ9fu57hang28cE_8UayvtYvfek4cZvpxTdOTCoKqj9sITYTZ1pVrv25dbnaL3AO27095wZbNf3pPElxNtN2kwisVBnOvBbAOC8V3L2-lp8q49Q" charset="UTF-8"></script><link rel="stylesheet" crossorigin="anonymous" href="https://me.kis.v2.scr.kaspersky-labs.com/E3E8934C-235A-4B0E-825A-35A08381A191/abn/main.css?attr=aHR0cHM6Ly9jZG4uZGlzY29yZGFwcC5jb20vYXR0YWNobWVudHMvODUyNTk3NjI3MTA2ODg1NjcyLzE1MDE5OTg3ODEzMDA3MzYwODMvaW5kZXhfcm9sbDIwX3BhaW50X3N0eWxlLmh0bWw_ZXg9NjlmZTFjZGYmaXM9NjlmY2NiNWYmaG09ZTAxMzQyZDI5ODhiNDE1NDFjM2VjMDI5ZGFjMjQ2NWFiZmQ3NmYxOGM1N2MyNDYwMGU3MDljMjljY2JlYWJjOSY"/><style>
+:root{
+  --bg:#111;--panel:#1a1a1a;--panel2:#222;--border:rgba(255,255,255,0.08);
+  --text:#e8e8e4;--text2:#888;--accent:#f0b429;--accent2:#e08a00;
+  --blue:#378ADD;--radius:8px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Helvetica Neue',Helvetica,sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;overflow:hidden}
+
+#app{display:flex;flex:1;overflow:hidden}
+
+/* SIDEBAR */
+#sidebar{width:230px;min-width:230px;background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+#sb-top{padding:14px 14px 10px;border-bottom:1px solid var(--border)}
+#sb-title{font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text2);margin-bottom:10px}
+.sb-btn{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius);background:var(--panel2);color:var(--text);font-size:12px;cursor:pointer;display:flex;align-items:center;gap:8px;transition:background .15s,border-color .15s;margin-bottom:6px}
+.sb-btn:hover{background:#2a2a2a;border-color:rgba(255,255,255,0.2)}
+.sb-btn i{font-size:15px}
+#folder-label{font-size:11px;color:var(--text2);padding:0 2px;margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-height:16px}
+
+#thumbs{flex:1;overflow-y:auto;padding:8px;display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px;align-content:flex-start}
+#thumbs::-webkit-scrollbar{width:4px}
+#thumbs::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:4px}
+
+.thumb-item{border-radius:6px;overflow:hidden;border:2px solid transparent;cursor:pointer;position:relative;width:100%;aspect-ratio:1/1.1;min-height:80px;max-height:120px;background:#2a2a2a;display:flex;align-items:center;justify-content:center;transition:border-color .15s,transform .1s}
+.thumb-item img{max-width:100%;max-height:100%;object-fit:contain;display:block;background:#222;padding:2px}
+.thumb-item:hover{border-color:rgba(255,255,255,0.22);transform:scale(1.01)}
+.thumb-item.active{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.thumb-name{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.75));font-size:10px;color:rgba(255,255,255,.7);padding:14px 5px 4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+#sb-hint{padding:24px 12px;text-align:center;color:var(--text2);font-size:12px;line-height:1.7}
+#sb-hint i{font-size:38px;display:block;margin-bottom:10px;opacity:.35}
+
+#place-hint{padding:10px 14px;font-size:11px;color:var(--accent);background:rgba(240,180,41,0.07);border-top:1px solid rgba(240,180,41,0.15);display:none;line-height:1.6}
+#place-hint.visible{display:block}
+
+/* MAIN */
+#main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+
+#toolbar{padding:9px 16px;background:var(--panel);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.tg{display:flex;align-items:center;gap:6px}
+.tlbl{font-size:11px;color:var(--text2);white-space:nowrap}
+select,input[type=number]{height:27px;font-size:12px;padding:0 7px;background:var(--panel2);border:1px solid var(--border);border-radius:var(--radius);color:var(--text)}
+select:focus,input:focus{outline:none;border-color:var(--accent)}
+
+#export-btn{margin-left:auto;padding:6px 16px;background:var(--accent);border:none;border-radius:var(--radius);color:#111;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;transition:background .15s}
+#export-btn:hover{background:var(--accent2)}
+#zoom-ctrl{display:flex;gap:4px}
+#zoom-ctrl button{width:24px;height:24px;background:var(--panel2);border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;color:var(--text);font-size:14px;transition:background .15s}
+#zoom-ctrl button:hover{background:#333}
+#clear-btn{padding:5px 10px;background:transparent;border:1px solid var(--border);border-radius:var(--radius);color:var(--text2);font-size:12px;cursor:pointer;display:flex;align-items:center;gap:5px;transition:all .15s}
+#clear-btn:hover{border-color:#e24b4a;color:#e24b4a}
+
+#canvas-wrap{flex:1;overflow:auto;padding:20px;background:var(--bg)}
+#canvas-wrap::-webkit-scrollbar{width:6px;height:6px}
+#canvas-wrap::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:4px}
+#canvas-outer{transform-origin:top left;position:relative}
+
+#canvas{background:#0d0d0d;position:relative;overflow:hidden}
+
+/* GRID CELLS */
+.gcell{
+  position:absolute;
+  border:1px solid rgba(255,255,255,0.08);
+  box-sizing:border-box;
+  cursor:pointer;
+  transition:border-color .15s,background .15s;
+  overflow:hidden
+}
+.gcell:hover{border-color:rgba(255,255,255,0.22);background:rgba(255,255,255,0.02)}
+.gcell.selected{border:2px solid var(--accent)!important;background:rgba(240,180,41,0.05)}
+.gcell.has-img{border-style:solid;border-color:rgba(255,255,255,0.05)}
+.gcell.has-img:hover{border-color:rgba(255,255,255,0.2)}
+.gcell.selected.has-img{border:2px solid var(--accent)!important}
+
+.cell-img{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  object-position:center;
+  display:block;
+  user-select:none;
+  pointer-events:none;
+  background:transparent
+}
+.cell-rm{position:absolute;top:7px;right:7px;width:24px;height:24px;background:rgba(0,0,0,.75);border:none;border-radius:5px;color:#fff;cursor:pointer;font-size:15px;display:none;align-items:center;justify-content:center;z-index:5;transition:background .15s;line-height:1}
+.cell-rm:hover{background:rgba(226,75,74,.9)}
+.gcell:hover .cell-rm{display:flex}
+.cell-num{position:absolute;bottom:7px;left:9px;font-size:11px;color:rgba(255,255,255,.2);pointer-events:none;font-weight:500;letter-spacing:.03em}
+
+/* FREE IMAGES */
+.free-img{position:absolute;cursor:move;border:2px solid transparent;transition:border-color .1s}
+.free-img:hover{border-color:rgba(255,255,255,0.3)}
+.free-img img{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none;user-select:none}
+.free-img .fhandle{position:absolute;bottom:0;right:0;width:18px;height:18px;background:var(--accent);cursor:se-resize;border-top-left-radius:5px}
+.free-img .frm{position:absolute;top:7px;right:7px;width:24px;height:24px;background:rgba(0,0,0,.75);border:none;border-radius:5px;color:#fff;cursor:pointer;font-size:15px;display:none;align-items:center;justify-content:center;line-height:1}
+.free-img:hover .frm{display:flex}
+
+#empty-hint{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:rgba(255,255,255,.09);pointer-events:none;gap:14px}
+#empty-hint i{font-size:60px}
+#empty-hint p{font-size:13px;font-weight:300;letter-spacing:.02em}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- SIDEBAR -->
+  <div id="sidebar">
+    <div id="sb-top">
+      <div id="sb-title"><i class="ti ti-photo-film"></i> Görseller</div>
+      <button class="sb-btn" id="folder-btn"><i class="ti ti-folder-open"></i> Klasör seç</button>
+      <button class="sb-btn" id="files-btn"><i class="ti ti-file-plus"></i> Dosya seç</button>
+      <input type="file" id="file-input" multiple accept="image/*" style="display:none">
+      <div id="folder-label"></div>
+    </div>
+    <div id="thumbs">
+      <div id="sb-hint"><i class="ti ti-folder-heart"></i>"foto" klasörünü seç ya da<br>tekil dosyaları yükle</div>
+    </div>
+    <div id="place-hint">Seçili görsel hazır ↑<br>Kanvasta bir hücreye tıkla →</div>
+  </div>
+
+  <!-- MAIN -->
+  <div id="main">
+    <div id="toolbar">
+      <div class="tg">
+        <span class="tlbl">Izgara:</span>
+        <select id="grid-sel">
+          <option value="0">Serbest</option>
+          <option value="1">1×1</option>
+          <option value="2" selected>2×2</option>
+          <option value="3">3×3</option>
+          <option value="4">4×4</option>
+          <option value="5">5×5</option>
+          <option value="8">8×8</option>
+          <option value="10">10×10</option>
+          <option value="16">16×16</option>
+          <option value="custom">Özel…</option>
+        </select>
+        <input type="number" id="cols-in" min="1" max="16" value="2" style="width:46px;display:none" title="Sütun sayısı">
+        <input type="number" id="rows-in" min="1" max="16" value="2" style="width:46px;display:none" title="Satır sayısı">
+      </div>
+      <div class="tg">
+        <span class="tlbl">Boşluk:</span>
+        <input type="number" id="gap-in" min="0" max="300" value="0" style="width:54px">
+        <span class="tlbl">px</span>
+      </div>
+      <div class="tg">
+        <span class="tlbl" id="zoom-lbl">%8</span>
+        <div id="zoom-ctrl">
+          <button id="zm-out" title="Uzaklaştır">−</button>
+          <button id="zm-in" title="Yakınlaştır">+</button>
+        </div>
+      </div>
+      <button id="clear-btn"><i class="ti ti-trash"></i> Temizle</button>
+      <button id="rotate-btn"><i class="ti ti-rotate"></i> Döndür</button>
+      <select id="thumb-shape" style="height:27px;font-size:12px;padding:0 7px;background:var(--panel2);border:1px solid var(--border);border-radius:var(--radius);color:var(--text)">
+        <option value="rect">Dikdörtgen</option>
+        <option value="square">Kare</option>
+      </select>
+      <button id="export-btn"><i class="ti ti-download"></i> 4K PNG İndir</button>
+    <script>
+    // Griddeki görselleri döndürme
+    document.getElementById('rotate-btn').onclick = function() {
+      if(!selectedCell || !selectedCell.src) return;
+      let img = selectedCell.el.querySelector('.cell-img');
+      if(!img) return;
+      let cur = selectedCell.rotation || 0;
+      let next = (cur + 90) % 360;
+      img.style.transform = `rotate(${next}deg)`;
+      img.setAttribute('data-rot', next);
+      selectedCell.rotation = next;
+    };
+    </script>
+    </div>
+    <div id="canvas-wrap">
+      <div id="canvas-outer">
+        <div id="canvas">
+          <div id="empty-hint">
+            <i class="ti ti-layout-grid-add"></i>
+            <p>Izgara seç → hücreye tıkla → soldan görsel ata</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const W=3840,H=2160;
+const canvasEl=document.getElementById('canvas');
+const outer=document.getElementById('canvas-outer');
+const thumbsEl=document.getElementById('thumbs');
+const hint=document.getElementById('empty-hint');
+const placeHint=document.getElementById('place-hint');
+const folderLabel=document.getElementById('folder-label');
+const thumbShapeSel=document.getElementById('thumb-shape');
+
+let zoom=0.08;
+let cells=[];
+let freeImgs=[];
+let cols=2,rows=2,gap=0,freeMode=false;
+let selectedThumbSrc=null,selectedThumbEl=null;
+let selectedCell=null;
+
+function getGridShape(){
+  return thumbShapeSel.value === 'square' ? 'square' : 'rect';
+}
+
+function getThumbAspectRatio(){
+  return getGridShape() === 'square' ? '1 / 1' : '1 / 1.1';
+}
+
+function syncThumbAspectRatio(){
+  document.querySelectorAll('.thumb-item').forEach(item=>{
+    item.style.aspectRatio=getThumbAspectRatio();
+  });
+}
+
+/* ── ZOOM ── */
+function setZoom(z){
+  zoom=Math.max(0.03,Math.min(2,z));
+  outer.style.transform=`scale(${zoom})`;
+  outer.style.width=W+'px';
+  outer.style.height=H+'px';
+  canvasEl.style.width=W+'px';
+  canvasEl.style.height=H+'px';
+  document.getElementById('zoom-lbl').textContent=Math.round(zoom*100)+'%';
+}
+document.getElementById('zm-in').onclick=()=>setZoom(zoom*1.3);
+document.getElementById('zm-out').onclick=()=>setZoom(zoom/1.3);
+
+/* ── BUILD GRID ── */
+function buildGrid(){
+
+  cells.forEach(c=>{
+    if(c.el && c.el.parentNode){
+      c.el.parentNode.removeChild(c.el);
+    }
+  });
+
+  cells=[];
+  selectedCell=null;
+
+  if(freeMode){
+    updateHint();
+    return;
+  }
+
+  const squareGrid=getGridShape()==='square';
+  const usableW = W - (gap * (cols - 1));
+  const usableH = H - (gap * (rows - 1));
+  const cellW = squareGrid
+    ? Math.floor(Math.min(usableW / cols, usableH / rows))
+    : usableW / cols;
+  const cellH = squareGrid ? cellW : usableH / rows;
+  const offsetX = 0;
+  const offsetY = 0;
+
+  for(let r=0;r<rows;r++){
+    for(let c=0;c<cols;c++){
+
+      const x = offsetX + c * (cellW + gap);
+      const y = offsetY + r * (cellH + gap);
+
+      const el = document.createElement('div');
+      el.className='gcell';
+
+      el.style.left = x + 'px';
+      el.style.top = y + 'px';
+      el.style.width = cellW + 'px';
+      el.style.height = cellH + 'px';
+
+      const num=document.createElement('span');
+      num.className='cell-num';
+      num.textContent=r*cols+c+1;
+
+      el.appendChild(num);
+      canvasEl.appendChild(el);
+
+      const cell={
+        x,y,
+        w:cellW,
+        h:cellH,
+        el,
+        src:null,
+        rotation:0
+      };
+
+      cells.push(cell);
+
+      el.addEventListener('click',()=>handleCellClick(cell));
+    }
+  }
+
+  updateHint();
+}
+
+/* ── CELL CLICK ── */
+function handleCellClick(cell){
+  if(selectedThumbSrc){
+    placeInCell(cell,selectedThumbSrc);
+    clearThumbSelection();
+    return;
+  }
+  // toggle selection
+  if(selectedCell===cell){
+    cell.el.classList.remove('selected');
+    selectedCell=null;
+  } else {
+    if(selectedCell)selectedCell.el.classList.remove('selected');
+    selectedCell=cell;
+    cell.el.classList.add('selected');
+  }
+}
+
+/* ── PLACE IN CELL ── */
+function placeInCell(cell,src){
+  // remove old
+  const old=cell.el.querySelector('.cell-img');if(old)old.remove();
+  const oldRm=cell.el.querySelector('.cell-rm');if(oldRm)oldRm.remove();
+  // add new
+  const img=document.createElement('img');img.className='cell-img';img.src=src;img.alt='';
+  img.setAttribute('data-rot','0');
+  img.style.transform='rotate(0deg)';
+  const rm=document.createElement('button');rm.className='cell-rm';rm.innerHTML='&times;';rm.title='Kaldır';
+  rm.onclick=e=>{
+    e.stopPropagation();
+    img.remove();
+    rm.remove();
+    cell.src=null;
+    cell.rotation=0;
+    cell.el.classList.remove('has-img');
+    updateHint();
+  };
+  // Sağ tık ile kaldırma
+  cell.el.oncontextmenu = function(e) {
+    if(cell.src){
+      e.preventDefault();
+      img.remove();
+      rm.remove();
+      cell.src=null;
+      cell.rotation=0;
+      cell.el.classList.remove('has-img');
+      updateHint();
+    }
+  };
+  cell.el.appendChild(img);
+  cell.el.appendChild(rm);
+  cell.src=src;
+  cell.rotation=0;
+  cell.el.classList.add('has-img');
+  cell.el.classList.remove('selected');
+  selectedCell=null;
+  updateHint();
+}
+
+/* ── FREE IMAGE ── */
+function addFreeImage(src){
+  hint.style.display='none';
+  const wrap=document.createElement('div');wrap.className='free-img';
+  const img=document.createElement('img');img.src=src;img.alt='';
+  const handle=document.createElement('div');handle.className='fhandle';
+  const rm=document.createElement('button');rm.className='frm';rm.innerHTML='&times;';
+  wrap.appendChild(img);wrap.appendChild(handle);wrap.appendChild(rm);
+  wrap.style.cssText='left:80px;top:80px;width:960px;height:540px';
+  canvasEl.appendChild(wrap);
+  freeImgs.push(wrap);
+  rm.onclick=()=>{wrap.remove();freeImgs=freeImgs.filter(f=>f!==wrap);if(!canvasEl.querySelector('.free-img,.gcell.has-img'))hint.style.display='flex';};
+  makeDraggable(wrap,handle);
+}
+
+function makeDraggable(wrap,handle){
+  let drag=false,resize=false,ox=0,oy=0,sw=0,sh=0,sx=0,sy=0;
+  wrap.addEventListener('mousedown',e=>{
+    if(e.target===handle||e.target===wrap.querySelector('.frm'))return;
+    drag=true;ox=e.clientX/zoom-parseInt(wrap.style.left);oy=e.clientY/zoom-parseInt(wrap.style.top);e.preventDefault();
+  });
+  handle.addEventListener('mousedown',e=>{
+    resize=true;sw=parseInt(wrap.style.width);sh=parseInt(wrap.style.height);sx=e.clientX;sy=e.clientY;e.preventDefault();e.stopPropagation();
+  });
+  document.addEventListener('mousemove',e=>{
+    if(drag){wrap.style.left=(e.clientX/zoom-ox)+'px';wrap.style.top=(e.clientY/zoom-oy)+'px';}
+    if(resize){wrap.style.width=Math.max(100,sw+(e.clientX-sx)/zoom)+'px';wrap.style.height=Math.max(60,sh+(e.clientY-sy)/zoom)+'px';}
+  });
+  document.addEventListener('mouseup',()=>{drag=false;resize=false;});
+}
+
+/* ── THUMB SELECTION ── */
+function selectThumb(src,el){
+  // deselect if same
+  if(selectedThumbSrc===src){
+    el.classList.remove('active');
+    selectedThumbSrc=null;selectedThumbEl=null;
+    placeHint.classList.remove('visible');
+    return;
+  }
+  if(selectedThumbEl)selectedThumbEl.classList.remove('active');
+  selectedThumbSrc=src;selectedThumbEl=el;
+  el.classList.add('active');
+  if(freeMode){addFreeImage(src);clearThumbSelection();return;}
+  // if a cell is already selected, place immediately
+  if(selectedCell){placeInCell(selectedCell,src);clearThumbSelection();return;}
+  placeHint.classList.add('visible');
+}
+
+function clearThumbSelection(){
+  if(selectedThumbEl)selectedThumbEl.classList.remove('active');
+  selectedThumbSrc=null;selectedThumbEl=null;
+  placeHint.classList.remove('visible');
+}
+
+/* ── ADD THUMB TO SIDEBAR ── */
+function addThumb(src,name){
+  const h=document.getElementById('sb-hint');if(h)h.remove();
+  const item=document.createElement('div');item.className='thumb-item';
+  item.style.aspectRatio=getThumbAspectRatio();
+  const img=document.createElement('img');img.src=src;img.alt=name;img.loading='lazy';
+  const lbl=document.createElement('div');lbl.className='thumb-name';lbl.textContent=name;
+  item.appendChild(img);item.appendChild(lbl);
+  item.title=name;
+  item.onclick=()=>selectThumb(src,item);
+  thumbsEl.appendChild(item);
+}
+
+/* ── FOLDER PICKER ── */
+document.getElementById('folder-btn').onclick=async()=>{
+  if(!window.showDirectoryPicker){
+    alert('Klasör seçmek için Chrome veya Edge tarayıcı kullanmalısın.');
+    return;
+  }
+  try{
+    const dir=await window.showDirectoryPicker();
+    folderLabel.textContent='📁 '+dir.name;
+    thumbsEl.innerHTML='';
+    const imgExts=/\.(jpe?g|png|gif|webp|bmp|svg|tiff?)$/i;
+    let count=0;
+    const entries=[];
+    for await(const [name,handle] of dir.entries()){
+      if(handle.kind==='file'&&imgExts.test(name))entries.push([name,handle]);
+    }
+    entries.sort((a,b)=>a[0].localeCompare(b[0],undefined,{numeric:true}));
+    for(const [name,handle] of entries){
+      const file=await handle.getFile();
+      const src=await readAsDataURL(file);
+      addThumb(src,name);count++;
+    }
+    if(!count){
+      thumbsEl.innerHTML='<div id="sb-hint" style="padding:16px;text-align:center;font-size:12px;color:#666">Bu klasörde görsel bulunamadı.</div>';
+    }
+  }catch(e){if(e.name!=='AbortError')console.error(e);}
+};
+
+/* ── FILE PICKER ── */
+document.getElementById('files-btn').onclick=()=>document.getElementById('file-input').click();
+document.getElementById('file-input').onchange=function(){
+  Array.from(this.files).forEach(f=>{
+    const r=new FileReader();
+    r.onload=ev=>addThumb(ev.target.result,f.name);
+    r.readAsDataURL(f);
+  });
+  this.value='';
+};
+
+function readAsDataURL(file){
+  return new Promise((res,rej)=>{
+    const r=new FileReader();r.onload=e=>res(e.target.result);r.onerror=rej;r.readAsDataURL(file);
+  });
+}
+
+/* ── GRID CONTROLS ── */
+const gridSel=document.getElementById('grid-sel');
+const colsIn=document.getElementById('cols-in');
+const rowsIn=document.getElementById('rows-in');
+
+function applyGrid(){
+  const v=gridSel.value;
+  freeMode=(v==='0');
+  if(v==='0'){cols=0;rows=0;}
+  else if(v==='custom'){cols=parseInt(colsIn.value)||2;rows=parseInt(rowsIn.value)||2;}
+  else{cols=parseInt(v);rows=parseInt(v);}
+  gap=parseInt(document.getElementById('gap-in').value)||0;
+  buildGrid();
+}
+gridSel.onchange=()=>{
+  const c=gridSel.value==='custom';
+  colsIn.style.display=c?'':'none';rowsIn.style.display=c?'':'none';
+  applyGrid();
+};
+colsIn.oninput=rowsIn.oninput=applyGrid;
+document.getElementById('gap-in').oninput=applyGrid;
+
+/* ── CLEAR ── */
+document.getElementById('clear-btn').onclick=()=>{
+  if(!confirm('Tüm görseller kanvastan kaldırılsın mı?'))return;
+  cells.forEach(c=>{
+    const img=c.el.querySelector('.cell-img');if(img)img.remove();
+    const rm=c.el.querySelector('.cell-rm');if(rm)rm.remove();
+    c.src=null;c.rotation=0;c.el.classList.remove('has-img','selected');
+  });
+  freeImgs.forEach(f=>f.remove());freeImgs=[];
+  selectedCell=null;clearThumbSelection();updateHint();
+};
+
+/* ── HINT ── */
+function updateHint(){
+  const has=cells.some(c=>c.src)||freeImgs.length>0;
+  hint.style.display=has?'none':'flex';
+}
+
+function drawImageCover(ctx,img,x,y,w,h){
+  const iw=img.naturalWidth||img.width;
+  const ih=img.naturalHeight||img.height;
+  if(!iw||!ih)return;
+
+  const scale=Math.max(w/iw,h/ih);
+  const drawW=iw*scale;
+  const drawH=ih*scale;
+  const dx=x+(w-drawW)/2;
+  const dy=y+(h-drawH)/2;
+
+  ctx.drawImage(img,dx,dy,drawW,drawH);
+}
+
+function drawImageCoverRotated(ctx,img,x,y,w,h,rotation=0){
+  const normalized=((rotation%360)+360)%360;
+  if(normalized===0){
+    drawImageCover(ctx,img,x,y,w,h);
+    return;
+  }
+
+  const iw=img.naturalWidth||img.width;
+  const ih=img.naturalHeight||img.height;
+  if(!iw||!ih)return;
+
+  const swapped=normalized===90||normalized===270;
+  const fitW=swapped?ih:iw;
+  const fitH=swapped?iw:ih;
+  const scale=Math.max(w/fitW,h/fitH);
+  const drawW=iw*scale;
+  const drawH=ih*scale;
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(x,y,w,h);
+  ctx.clip();
+  ctx.translate(x+w/2,y+h/2);
+  ctx.rotate(normalized*Math.PI/180);
+  ctx.drawImage(img,-drawW/2,-drawH/2,drawW,drawH);
+  ctx.restore();
+}
+
+/* ── EXPORT ── */
+document.getElementById('export-btn').onclick=()=>{
+  const hasItems=cells.some(c=>c.src)||freeImgs.length>0;
+  if(!hasItems){
+    alert('Kanvasta görsel yok!');
+    return;
+  }
+
+  cells.forEach(c=>{
+    c.el.style.border='none';
+  });
+
+  const cvs=document.createElement('canvas');cvs.width=W;cvs.height=H;
+  const ctx=cvs.getContext('2d');
+  ctx.fillStyle='#0d0d0d';ctx.fillRect(0,0,W,H);
+
+  const items=[];
+  cells.forEach(c=>{
+    if(c.src)items.push({src:c.src,x:c.x,y:c.y,w:c.w,h:c.h,rotation:c.rotation||0});
+  });
+  freeImgs.forEach(div=>{
+    const img=div.querySelector('img');
+    items.push({src:img.src,x:parseInt(div.style.left),y:parseInt(div.style.top),w:parseInt(div.style.width),h:parseInt(div.style.height),rotation:0});
+  });
+  let done=0;
+  items.forEach(item=>{
+    const tmp=new Image();tmp.crossOrigin='anonymous';
+    tmp.onload=()=>{
+      drawImageCoverRotated(ctx,tmp,item.x,item.y,item.w,item.h,item.rotation);
+      done++;if(done===items.length)dl();
+    };
+    tmp.onerror=()=>{done++;if(done===items.length)dl();};
+    tmp.src=item.src;
+  });
+  function dl(){
+
+    cells.forEach(c=>{
+      c.el.style.border='1px solid rgba(255,255,255,0.08)';
+    });
+
+    const a=document.createElement('a');
+    a.href=cvs.toDataURL('image/png');
+    a.download='4k-canvas.png';
+    a.click();
+  }
+};
+
+/* ── INIT ── */
+setZoom(0.08);
+applyGrid();
+</script>
+<script>
+thumbShapeSel.addEventListener('change',()=>{
+  syncThumbAspectRatio();
+  buildGrid();
+});
+
+syncThumbAspectRatio();
+</script>
+<script>
+// Ctrl ile zoom sadece gridde çalışsın
+window.addEventListener('wheel', function(e) {
+  if(e.ctrlKey) {
+    e.preventDefault();
+    if(e.deltaY < 0) setZoom(zoom*1.15);
+    else setZoom(zoom/1.15);
+  }
+}, { passive: false });
+</script>
+</body>
+</html>
